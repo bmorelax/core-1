@@ -4,6 +4,7 @@ import com.dotcms.business.WrapInTransaction;
 import com.dotcms.content.business.DotMappingException;
 import com.dotcms.content.elasticsearch.business.IndiciesAPI.IndiciesInfo;
 import com.dotcms.content.elasticsearch.util.ESClient;
+import com.dotcms.exception.ExceptionUtil;
 import com.dotcms.notifications.bean.NotificationLevel;
 import com.dotcms.notifications.bean.NotificationType;
 import com.dotcms.notifications.business.NotificationAPI;
@@ -585,8 +586,14 @@ public class ESContentFactoryImpl extends ContentletFactory {
                         HibernateUtil.delete(c);
                     }
                 } catch (Exception ex) {
-                    Logger.warn(this, "Error deleting contentlet inode " + con.getInode()
-                            + ". Probably it was already deleted?", ex);
+                    if (ExceptionUtil.causedBy(ex, ObjectNotFoundException.class)) {
+                        Logger.warn(this,
+                                String.format("Error deleting contentlet inode [%s] -> [%s]",
+                                        con.getInode(), ex.getMessage()));
+                    } else {
+                        Logger.error(this, "Error deleting contentlet inode " + con.getInode()
+                                + ". Probably it was already deleted?", ex);
+                    }
                     this.checkOrphanInode(con.getInode());
                 }
 
