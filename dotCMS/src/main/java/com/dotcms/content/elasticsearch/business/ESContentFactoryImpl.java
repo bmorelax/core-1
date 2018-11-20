@@ -584,11 +584,10 @@ public class ESContentFactoryImpl extends ContentletFactory {
                     if(c!=null && InodeUtils.isSet(c.getInode())) {
                         HibernateUtil.delete(c);
                     }
-                }
-                catch(Exception ex) {
-                    Logger.warn(this, "Error deleting contentlet inode "+con.getInode()+". Probably it was already deleted?");
-                    Logger.debug(this, "Error deleting contentlet inode "+con.getInode()+". Probably it was already deleted?", ex);
-                    this.checkOrphanInode (con.getInode());
+                } catch (Exception ex) {
+                    Logger.warn(this, "Error deleting contentlet inode " + con.getInode()
+                            + ". Probably it was already deleted?", ex);
+                    this.checkOrphanInode(con.getInode());
                 }
 
             }
