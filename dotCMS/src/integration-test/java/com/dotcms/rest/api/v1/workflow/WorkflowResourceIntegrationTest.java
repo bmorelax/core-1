@@ -1667,7 +1667,7 @@ public class WorkflowResourceIntegrationTest extends BaseWorkflowIntegrationTest
                     contentTypeAPI.delete(contentType);
                 } catch (Exception e) {
                     Logger.warn(this.getClass(), String.format(
-                            "Unable to clean up Content Type after finishes test [%s]",
+                            "Unable to clean up Content Type after finished test [%s]",
                             contentType.id()), e);
                 }
             }

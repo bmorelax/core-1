@@ -99,6 +99,9 @@ public class ESContentFactoryImpl extends ContentletFactory {
 	private static final Contentlet cache404Content= new Contentlet();
 	public static final String CACHE_404_CONTENTLET="CACHE_404_CONTENTLET";
 
+    private static final String QUERY_DELETE_INODE = "DELETE FROM inode WHERE inode = ?";
+    private static final String QUERY_DELETE_CONTENTLET = "DELETE FROM contentlet WHERE inode = ?";
+
     /**
 	 * Default factory constructor that initializes the connection with the
 	 * Elastic index.
@@ -579,24 +582,8 @@ public class ESContentFactoryImpl extends ContentletFactory {
                         APILocator.getVersionableAPI().deleteContentletVersionInfo(con.getIdentifier(), con.getLanguageId());
                 }
 
-                try {
-                    com.dotmarketing.portlets.contentlet.business.Contentlet c =
-                            (com.dotmarketing.portlets.contentlet.business.Contentlet)HibernateUtil.load(com.dotmarketing.portlets.contentlet.business.Contentlet.class, con.getInode());
-                    if(c!=null && InodeUtils.isSet(c.getInode())) {
-                        HibernateUtil.delete(c);
-                    }
-                } catch (Exception ex) {
-                    if (ExceptionUtil.causedBy(ex, ObjectNotFoundException.class)) {
-                        Logger.warn(this,
-                                String.format("Error deleting contentlet inode [%s] -> [%s]",
-                                        con.getInode(), ex.getMessage()));
-                    } else {
-                        Logger.error(this, "Error deleting contentlet inode " + con.getInode()
-                                + ". Probably it was already deleted?", ex);
-                    }
-                    this.checkOrphanInode(con.getInode());
-                }
-
+                //And finally delete the contentlet from the contentlet and inode tables
+                deleteContentlet(con.getInode());
             }
         }
         if (deleteIdentifier) {
@@ -614,11 +601,11 @@ public class ESContentFactoryImpl extends ContentletFactory {
 	}
 
     /**
-     * If the orphan exists will be deleted.
-     * @param inode String
+     * Deletes from the Contentlet and Inode tables a given contentlet.
      */
-    private void checkOrphanInode(final String inode) throws DotDataException {
-         new DotConnect().setSQL("delete from inode where inode = ?").addParam(inode).loadResult();
+    private void deleteContentlet(final String inode) throws DotDataException {
+        new DotConnect().setSQL(QUERY_DELETE_CONTENTLET).addParam(inode).loadResult();
+        new DotConnect().setSQL(QUERY_DELETE_INODE).addParam(inode).loadResult();
     }
 
     /**
