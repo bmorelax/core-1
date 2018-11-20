@@ -63,7 +63,7 @@ public class ContentTypeAPIImpl implements ContentTypeAPI {
   }
 
 
-  @WrapInTransaction
+  @CloseDBIfOpened
   @Override
   public void delete(ContentType type) throws DotSecurityException, DotDataException {
     perms.checkPermission(type, PermissionLevel.EDIT_PERMISSIONS, user);
