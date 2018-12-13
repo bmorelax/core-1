@@ -3012,8 +3012,28 @@ public class ESContentletAPIImpl implements ContentletAPI {
 
             // check contentlet Host
             User sysuser = APILocator.getUserAPI().getSystemUser();
+            // If host and folder are not set yet
+            if (!UtilMethods.isSet(contentlet.getHost()) && !UtilMethods.isSet(contentlet.getFolder())  && UtilMethods.isSet(contentlet.getIdentifier()) ) {
+                // Try to get host from sibling
+                Contentlet crownPrince = contentFactory.getContentletsByIdentifier(contentlet.getIdentifier()).stream().findFirst().orElse(null);
+                if (UtilMethods.isSet(crownPrince) // if has a viable sibling, take siblings host/folder
+                        && UtilMethods.isSet(crownPrince.getHost()) && UtilMethods.isSet(crownPrince.getFolder())) {
+                    contentlet.setHost(crownPrince.getHost());
+                    contentlet.setFolder(crownPrince.getFolder());
+                } else { // Try to get host from Content Type
+                    String structHost = contentlet.getContentType().host();
+                    String structFolder = contentlet.getContentType().folder();
+                    if (UtilMethods.isSet(structHost)) {
+                        contentlet.setHost(structHost);
+                    }
+                    if (UtilMethods.isSet(structFolder)) {
+                        contentlet.setFolder(structFolder);
+                    }
+                }
+            }
+            
             if (!UtilMethods.isSet(contentlet.getHost())) {
-                contentlet.setHost(APILocator.getHostAPI().findSystemHost(sysuser, true).getIdentifier());
+                contentlet.setHost(Host.SYSTEM_HOST);
             }
             if (!UtilMethods.isSet(contentlet.getFolder())) {
                 contentlet.setFolder(FolderAPI.SYSTEM_FOLDER);
@@ -3074,7 +3094,7 @@ public class ESContentletAPIImpl implements ContentletAPI {
 
                     if ( UtilMethods.isSet(value) ) {
 
-                        if ( structureHasAHostField ) {
+                        if ( structureHasAHostField || UtilMethods.isSet(contentlet.getHost())) {
                             Host host = null;
                             try {
                                 host = APILocator.getHostAPI().find(contentlet.getHost(), user, true);
@@ -6314,5 +6334,4 @@ public class ESContentletAPIImpl implements ContentletAPI {
         });
         return contentlet;
     }
-
 }

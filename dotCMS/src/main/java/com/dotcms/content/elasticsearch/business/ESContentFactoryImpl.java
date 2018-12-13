@@ -1,5 +1,6 @@
 package com.dotcms.content.elasticsearch.business;
 
+import com.beust.jcommander.internal.Lists;
 import com.dotcms.business.WrapInTransaction;
 import com.dotcms.content.business.DotMappingException;
 import com.dotcms.content.elasticsearch.business.IndiciesAPI.IndiciesInfo;
@@ -8,6 +9,7 @@ import com.dotcms.content.elasticsearch.util.ESClient;
 import com.dotcms.notifications.bean.NotificationLevel;
 import com.dotcms.notifications.bean.NotificationType;
 import com.dotcms.notifications.business.NotificationAPI;
+import com.dotcms.repackage.com.google.common.collect.ImmutableList;
 import com.dotcms.repackage.net.sf.hibernate.ObjectNotFoundException;
 import com.dotcms.repackage.org.apache.commons.io.FileUtils;
 import com.dotcms.util.I18NMessage;
@@ -1177,28 +1179,24 @@ public class ESContentFactoryImpl extends ContentletFactory {
 	    return getContentletsByIdentifier(identifier, null);
 	}
 
-	@Override
-	protected List<Contentlet> getContentletsByIdentifier(String identifier, Boolean live) throws DotDataException, DotStateException, DotSecurityException {
-	    StringBuilder queryBuffer = new StringBuilder();
-        queryBuffer.append("SELECT {contentlet.*} ")
-                   .append(" FROM contentlet JOIN inode contentlet_1_ ON (contentlet.inode = contentlet_1_.inode) ")
-        		   .append(" JOIN contentlet_version_info contentletvi ON (contentlet.identifier=contentletvi.identifier) ")
-                   .append(" WHERE ")
-                   .append((live!=null && live.booleanValue() ?
-                           "contentletvi.live_inode" : "contentletvi.working_inode"))
-                   .append(" = contentlet.inode and contentlet.identifier = ? ");
-        HibernateUtil hu = new HibernateUtil(com.dotmarketing.portlets.contentlet.business.Contentlet.class);
-        hu.setSQLQuery(queryBuffer.toString());
-        hu.setParam(identifier);
-        List<com.dotmarketing.portlets.contentlet.business.Contentlet> fatties =  hu.list();
-        List<Contentlet> result = new ArrayList<Contentlet>();
-        for (com.dotmarketing.portlets.contentlet.business.Contentlet fatty : fatties) {
-            Contentlet content = convertFatContentletToContentlet(fatty);
-            contentletCache.add(content.getInode(), content);
-            result.add(content);
+    @Override
+    protected List<Contentlet> getContentletsByIdentifier(final String identifier, Boolean liveB)
+            throws DotDataException, DotStateException, DotSecurityException {
+
+        boolean live = (liveB != null) ? liveB.booleanValue() : false;
+        List<ContentletVersionInfo> cvis = APILocator.getVersionableAPI().findContentletVersionInfos(identifier);
+        if (!UtilMethods.isSet(cvis))
+            return ImmutableList.of();
+        final List<Contentlet> cons = Lists.newArrayList();
+        for (ContentletVersionInfo cvi : cvis) {
+            Contentlet con = find((live) ? cvi.getLiveInode() : cvi.getWorkingInode());
+            if (null != con) {
+                cons.add(con);
+            }
         }
-        return result;
-	}
+
+        return cons;
+    }
 
 	@Override
 	protected Identifier getRelatedIdentifier(Contentlet contentlet, String relationshipType) throws DotDataException {
